@@ -1,0 +1,6 @@
+[package]
+name = "roll"
+version = "0.1.0"
+authors = ["Will Murphy <willmurphyscode@gmail.com>"]
+
+[dependencies]
