@@ -4,6 +4,6 @@ version = "0.1.0"
 authors = ["Will Murphy <willmurphyscode@gmail.com>"]
 
 [dependencies]
-clap = "2.26.0"
 rand = "0.3"
 nom = "3.2.0"
+cargo-expand = "0.3.9"
