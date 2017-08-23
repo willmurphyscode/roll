@@ -20,6 +20,9 @@ impl DiceSpec {
             bonus
         }
     }
+    pub fn roll(&self) -> i32 {
+        0i32
+    }
 }
 
 named!(parse_int<usize>, 
@@ -110,5 +113,13 @@ fn it_parses_dice_notation_with_bonus() {
     let expected : nom::IResult<&[u8], DiceSpec> = 
         nom::IResult::Done(&b""[..], DiceSpec::new(3, 6, 4)); 
     let input = "3d6 + 4"; 
+    assert_eq!(expected, dice_notation_bytes(input.as_bytes()));
+}
+
+#[test]
+fn it_parses_dice_notation_with_penalty() {
+    let expected : nom::IResult<&[u8], DiceSpec> = 
+        nom::IResult::Done(&b""[..], DiceSpec::new(3, 6, -4)); 
+    let input = "3d6 - 4"; 
     assert_eq!(expected, dice_notation_bytes(input.as_bytes()));
 }
