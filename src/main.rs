@@ -4,6 +4,7 @@ extern crate rand;
 extern crate nom; 
 
 use std::str::{FromStr};
+use rand::distributions::{IndependentSample, Range};
 
 #[derive(Debug, PartialEq)]
 struct DiceSpec {
@@ -21,7 +22,14 @@ impl DiceSpec {
         }
     }
     pub fn roll(&self) -> i32 {
-        0i32
+        let mut rng = rand::thread_rng();
+        let between = Range::new(1i32, self.faces as i32);
+        let mut result = self.bonus; 
+        for _ in 0..self.quantity {
+            let die = between.ind_sample(&mut rng);
+            result = result + die; 
+        }
+        result
     }
 }
 
@@ -77,25 +85,30 @@ fn parse_dice_spec(s: String) -> Result<DiceSpec,()> {
     let value = dice_notation_bytes(slice);
     println!("{:?}", value);
     match value {
-        nom::IResult::Done(i, dice) => println!("parsed: ({:?} {:?})", i, dice),
-        nom::IResult::Incomplete(_) => (),
-        nom::IResult::Error(e) => println!("Error: {:?}", e),
+        nom::IResult::Done(i, dice) => Ok(dice),
+        nom::IResult::Incomplete(_) => Err(()),
+        nom::IResult::Error(e) => Err(()),
     }
-    Ok(DiceSpec::new(1, 6, 0))
 }
 
 
 fn main() {
     let args = std::env::args();
+    let mut argvec : Vec<String> = Vec::new(); 
     if args.len() > 1 {
-        let option_arg = args.last();
-        match option_arg {
-            Some(last_arg) => {
-                parse_dice_spec(last_arg.clone());
-            },
-            None => ()
+        for arg in args.skip(1) {
+            argvec.push(arg);
         }
-        
+        let arg_string = argvec.concat();
+        let dice_result = parse_dice_spec(arg_string.clone());
+        match dice_result {
+            Ok(dice) => {
+                let result = dice.roll();
+                println!("Dice were {:?}", dice);
+                println!("Rolled {} and got {}", arg_string, result);
+            },
+            Err(_) => println!("Could not parse: {}.", arg_string)
+        }
     }
 }
 
