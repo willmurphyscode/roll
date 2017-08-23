@@ -77,20 +77,16 @@ named!(dice_notation_bytes<DiceSpec>,
         )
 ));
 
-use nom::digit;
-
-
 fn parse_dice_spec(s: String) -> Result<DiceSpec,()> {
     let slice : &[u8] = s.as_bytes();
     let value = dice_notation_bytes(slice);
     println!("{:?}", value);
     match value {
-        nom::IResult::Done(i, dice) => Ok(dice),
+        nom::IResult::Done(_, dice) => Ok(dice),
         nom::IResult::Incomplete(_) => Err(()),
-        nom::IResult::Error(e) => Err(()),
+        nom::IResult::Error(_) => Err(()),
     }
 }
-
 
 fn main() {
     let args = std::env::args();
