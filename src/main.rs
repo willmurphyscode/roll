@@ -32,16 +32,38 @@ named!(parse_int<usize>,
     )
 );
 
-named!(sign<&[u8]>, alt!(tag!("+") | tag!("-")));
+named!(sign<&str>, 
+    map_res!(
+            alt!(tag!("+") | tag!("-")), 
+            std::str::from_utf8));
 
 named!(d_tag<&[u8]>, tag!("d"));
+
+named!(bonus<i32>, 
+    do_parse!(
+        sign: ws!(sign) >>
+        value: parse_int >>
+        (
+            match sign {
+                "-" => (-1 * (value as i32)),
+                "+" => (value as i32),
+                _ => 0i32
+            }
+        )
+    ));
 
 named!(dice_notation_bytes<DiceSpec>, 
     do_parse!(
         quantity: parse_int >>
         d: d_tag >>
         faces: parse_int >>
-        ( DiceSpec::new(quantity, faces, 0) )
+        bonus: opt!(complete!(bonus)) >>
+        ( 
+            match bonus {
+                Some(b) => DiceSpec::new(quantity, faces, b),
+                None => DiceSpec::new(quantity, faces, 0)  
+            }   
+        )
 ));
 
 use nom::digit;
@@ -79,5 +101,14 @@ fn it_parses_dice_notation_just_the_dice() {
     let expected : nom::IResult<&[u8], DiceSpec> = 
         nom::IResult::Done(&b""[..], DiceSpec::new(3, 6, 0));
     let input = "3d6";
+    assert_eq!(expected, dice_notation_bytes(input.as_bytes()));
+}
+
+
+#[test]
+fn it_parses_dice_notation_with_bonus() {
+    let expected : nom::IResult<&[u8], DiceSpec> = 
+        nom::IResult::Done(&b""[..], DiceSpec::new(3, 6, 4)); 
+    let input = "3d6 + 4"; 
     assert_eq!(expected, dice_notation_bytes(input.as_bytes()));
 }
