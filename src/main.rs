@@ -23,7 +23,7 @@ impl DiceSpec {
     }
     pub fn roll(&self) -> i32 {
         let mut rng = rand::thread_rng();
-        let between = Range::new(1i32, self.faces as i32);
+        let between = Range::new(1i32, self.faces as i32 + 1);
         let mut result = self.bonus; 
         for _ in 0..self.quantity {
             let die = between.ind_sample(&mut rng);
@@ -80,7 +80,6 @@ named!(dice_notation_bytes<DiceSpec>,
 fn parse_dice_spec(s: String) -> Result<DiceSpec,()> {
     let slice : &[u8] = s.as_bytes();
     let value = dice_notation_bytes(slice);
-    println!("{:?}", value);
     match value {
         nom::IResult::Done(_, dice) => Ok(dice),
         nom::IResult::Incomplete(_) => Err(()),
@@ -100,7 +99,6 @@ fn main() {
         match dice_result {
             Ok(dice) => {
                 let result = dice.roll();
-                println!("Dice were {:?}", dice);
                 println!("Rolled {} and got {}", arg_string, result);
             },
             Err(_) => println!("Could not parse: {}.", arg_string)
