@@ -63,10 +63,21 @@ named!(bonus<i32>,
         )
     ));
 
+named!(int_or_1<usize>, 
+    do_parse!(
+        val: opt!(parse_int) >>
+        (
+            match val {
+                Some(value) => value,
+                None => 1usize
+            }
+        )
+));
+
 named!(dice_notation_bytes<DiceSpec>, 
     do_parse!(
-        quantity: parse_int >>
-        d: d_tag >>
+        quantity: int_or_1 >>
+        d_tag >>
         faces: parse_int >>
         bonus: opt!(complete!(bonus)) >>
         ( 
