@@ -16,8 +16,8 @@ struct DiceSpec {
 impl DiceSpec {
     pub fn new(quantity: usize, faces: usize, bonus: i32) -> DiceSpec {
         DiceSpec {
-            quantity: quantity,
-            faces: faces,
+            quantity,
+            faces,
             bonus
         }
     }
