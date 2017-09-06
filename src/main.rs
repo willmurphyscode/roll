@@ -21,6 +21,7 @@ impl DiceSpec {
             bonus
         }
     }
+
     pub fn roll(&self) -> i32 {
         let mut rng = rand::thread_rng();
         let between = Range::new(1i32, self.faces as i32 + 1);
@@ -45,8 +46,9 @@ named!(parse_int<usize>,
 
 named!(sign<&str>, 
     map_res!(
-            alt!(tag!("+") | tag!("-")), 
-            std::str::from_utf8));
+        alt!(tag!("+") | tag!("-")),
+        std::str::from_utf8)
+);
 
 named!(d_tag<&[u8]>, tag!("d"));
 
@@ -61,7 +63,8 @@ named!(bonus<i32>,
                 _ => 0i32
             }
         )
-    ));
+    )
+);
 
 named!(int_or_1<usize>, 
     do_parse!(
@@ -72,7 +75,8 @@ named!(int_or_1<usize>,
                 None => 1usize
             }
         )
-));
+    )
+);
 
 named!(dice_notation_bytes<DiceSpec>, 
     do_parse!(
@@ -86,7 +90,8 @@ named!(dice_notation_bytes<DiceSpec>,
                 None => DiceSpec::new(quantity, faces, 0)  
             }   
         )
-));
+    )
+);
 
 fn parse_dice_spec(s: String) -> Result<DiceSpec,()> {
     let slice : &[u8] = s.as_bytes();
