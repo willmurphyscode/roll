@@ -1,9 +1,11 @@
-#![feature(use_extern_macros)]
-extern crate rand; 
+#![feature(try_from)]
+extern crate rand;
 #[macro_use]
-extern crate nom; 
+extern crate nom;
 
 use std::str::{FromStr};
+
+use std::convert::TryFrom;
 use rand::distributions::{IndependentSample, Range};
 
 #[derive(Debug, PartialEq)]
@@ -25,16 +27,16 @@ impl DiceSpec {
     pub fn roll(&self) -> i32 {
         let mut rng = rand::thread_rng();
         let between = Range::new(1i32, self.faces as i32 + 1);
-        let mut result = self.bonus; 
+        let mut result = self.bonus;
         for _ in 0..self.quantity {
             let die = between.ind_sample(&mut rng);
-            result = result + die; 
+            result = result + die;
         }
         result
     }
 }
 
-named!(parse_int<usize>, 
+named!(parse_int<usize>,
     map_res!(
       map_res!(
         ws!(nom::digit),
@@ -44,7 +46,7 @@ named!(parse_int<usize>,
     )
 );
 
-named!(sign<&str>, 
+named!(sign<&str>,
     map_res!(
         alt!(tag!("+") | tag!("-")),
         std::str::from_utf8)
@@ -52,9 +54,9 @@ named!(sign<&str>,
 
 named!(d_tag<&[u8]>, tag!("d"));
 
-named!(bonus<i32>, 
+named!(bonus<i32>,
     do_parse!(
-        sign: ws!(sign) >>
+        sign: sign >>
         value: parse_int >>
         (
             match sign {
@@ -66,7 +68,7 @@ named!(bonus<i32>,
     )
 );
 
-named!(int_or_1<usize>, 
+named!(int_or_1<usize>,
     do_parse!(
         val: opt!(parse_int) >>
         (
@@ -78,17 +80,17 @@ named!(int_or_1<usize>,
     )
 );
 
-named!(dice_notation_bytes<DiceSpec>, 
+named!(dice_notation_bytes<DiceSpec>,
     do_parse!(
         quantity: int_or_1 >>
         d_tag >>
         faces: parse_int >>
         bonus: opt!(complete!(bonus)) >>
-        ( 
+        (
             match bonus {
                 Some(b) => DiceSpec::new(quantity, faces, b),
-                None => DiceSpec::new(quantity, faces, 0)  
-            }   
+                None => DiceSpec::new(quantity, faces, 0)
+            }
         )
     )
 );
@@ -99,16 +101,27 @@ fn parse_dice_spec(s: String) -> Result<DiceSpec,()> {
     match value {
         nom::IResult::Done(_, dice) => Ok(dice),
         nom::IResult::Incomplete(_) => Err(()),
-        nom::IResult::Error(_) => Err(()),
+        //nom::IResult::Error(_) => Err(()),
+        _ => Err(()),
     }
 }
 
 fn main() {
     let args = std::env::args();
-    let mut argvec : Vec<String> = Vec::new(); 
+    let mut argvec : Vec<String> = Vec::new();
+
     if args.len() > 1 {
         for arg in args.skip(1) {
             argvec.push(arg);
+        }
+        // TODO: actual arg parsing
+        if argvec[0] == "-c" {
+            let choices = &argvec[1..];
+            let num_choices = choices.len();
+            let choice_index = DiceSpec::new(1, num_choices, 0).roll();
+            let ix : usize = usize::try_from(choice_index).unwrap();
+            println!("Chose from {} and got {}", &argvec[1..].join(" "), &argvec[ix]);
+            return;
         }
         let arg_string = argvec.concat();
         let dice_result = parse_dice_spec(arg_string.clone());
@@ -124,7 +137,7 @@ fn main() {
 
 #[test]
 fn it_parses_dice_notation_just_the_dice() {
-    let expected : nom::IResult<&[u8], DiceSpec> = 
+    let expected : nom::IResult<&[u8], DiceSpec> =
         nom::IResult::Done(&b""[..], DiceSpec::new(3, 6, 0));
     let input = "3d6";
     assert_eq!(expected, dice_notation_bytes(input.as_bytes()));
@@ -133,16 +146,24 @@ fn it_parses_dice_notation_just_the_dice() {
 
 #[test]
 fn it_parses_dice_notation_with_bonus() {
-    let expected : nom::IResult<&[u8], DiceSpec> = 
-        nom::IResult::Done(&b""[..], DiceSpec::new(3, 6, 4)); 
-    let input = "3d6 + 4"; 
+    let expected : nom::IResult<&[u8], DiceSpec> =
+        nom::IResult::Done(&b""[..], DiceSpec::new(3, 6, 4));
+    let input = "3d6 + 4";
+    assert_eq!(expected, dice_notation_bytes(input.as_bytes()));
+}
+
+#[test]
+fn it_handles_crazy_spacing() {
+    let expected : nom::IResult<&[u8], DiceSpec> =
+    nom::IResult::Done(&b""[..], DiceSpec::new(3, 6, 4));
+    let input = "3   d      6     +                     4";
     assert_eq!(expected, dice_notation_bytes(input.as_bytes()));
 }
 
 #[test]
 fn it_parses_dice_notation_with_penalty() {
-    let expected : nom::IResult<&[u8], DiceSpec> = 
-        nom::IResult::Done(&b""[..], DiceSpec::new(3, 6, -4)); 
-    let input = "3d6 - 4"; 
+    let expected : nom::IResult<&[u8], DiceSpec> =
+        nom::IResult::Done(&b""[..], DiceSpec::new(3, 6, -4));
+    let input = "3d6 - 4";
     assert_eq!(expected, dice_notation_bytes(input.as_bytes()));
 }
